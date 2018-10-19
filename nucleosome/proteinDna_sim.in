@@ -1,0 +1,113 @@
+variable              tempIndex   world 0 4 3 1 2 5 10 6 9 8 11 7 
+# Test system for LAMMPS simulation
+
+units               real
+atom_style          awsemmd
+boundary            s s s
+newton              on  #yes
+
+#   ---         Variables for debye huckel potential        ---     #
+#   parallel replica temperatures
+variable            T   world   260 270 280 290 300     310     320     330     340     350     360     370
+#variable            T   equal   300     
+
+variable            salt        equal   100.0       # Salt concentration [mM]
+variable            random      equal   12345
+variable            ldby        equal   9.618854    # debye screen length, depend on both T and salt, determined from known formula given that dielec=78
+variable            ldbi        equal   1.0/v_ldby  # debye screen length
+variable            cut_coul    equal   v_ldby*4.0  # coulombic cutoff is four times the debye length. 
+                                                    # This is consistent with the DNA model
+variable            dielec      equal   78.0
+
+# Specify the different interaction styles
+bond_style          hybrid harmonic         list    /home/tparsons/mainScripts/nucleosome_intact/commons/buildDna/in00_bond.list
+angle_style         hybrid stacking/3spn2   list    /home/tparsons/mainScripts/nucleosome_intact/commons/buildDna/in00_angl.list
+dihedral_style                              list    /home/tparsons/mainScripts/nucleosome_intact/commons/buildDna/in00_dihe.list
+pair_style          hybrid/overlay vexcluded 2 3.5 3.5 3spn2 bdna/curv ${T} ${salt} 18.0 50.0  lj/cut/coul/debye ${ldbi} 10.0 ${cut_coul}
+dielectric          ${dielec} 
+
+# Read in the configuration
+read_data         ./data_temp${T}.restart
+# read in pair interaction
+include             ./proteinDna_pairCoeff.in
+# shift the cutoff energy
+pair_modify         shift yes
+
+# ---     from AWSEM simulation   ---
+neighbor            10      bin 
+neigh_modify        check  yes     one 4000    # this avoids the error "boost neigh_modify one"
+atom_modify         sort 0 0.0
+special_bonds       fene
+
+#   ---         group definitions       --- #
+include             /home/tparsons/mainScripts/nucleosome_intact/commons/groupDefinitions/group_definitions.in
+include             /home/tparsons/mainScripts/nucleosome_intact/commons/groupDefinitions/group_dnaSugar.txt
+include             /home/tparsons/mainScripts/nucleosome_intact/commons/groupDefinitions/group_alpha_carbons_noTail.txt
+include             /home/tparsons/mainScripts/nucleosome_intact/commons/split_dna_in_half/group_dnaSugar_firstHalf.txt
+include             /home/tparsons/mainScripts/nucleosome_intact/commons/split_dna_in_half/group_dnaSugar_secondHalf.txt
+include             /home/tparsons/mainScripts/nucleosome_intact/commons/groupDefinitions/group_phosphate_colvar.txt
+include             /home/tparsons/mainScripts/nucleosome_intact/commons/groupDefinitions/group_CBeta_colvar.txt
+# 
+include             /home/tparsons/mainScripts/nucleosome_intact/commons/postprocessing/group_alpha_carbons_chainAB.txt
+include             /home/tparsons/mainScripts/nucleosome_intact/commons/postprocessing/group_alpha_carbons_chainCD.txt
+include             /home/tparsons/mainScripts/nucleosome_intact/commons/postprocessing/group_alpha_carbons_chainEF.txt
+include             /home/tparsons/mainScripts/nucleosome_intact/commons/postprocessing/group_alpha_carbons_chainGH.txt
+#
+group2ndx           groups.ndx  
+
+compute             edna all pair 3spn2
+compute             edna_bonded all bond
+
+variable            ebp         equal   c_edna[1] # Base pairing energy
+variable            ecstk       equal   c_edna[2] # Cross stacking energy
+variable            eexcl       equal   c_edna[3] # Excluded volume energy
+variable            dna_ecoul   equal   c_edna[4] # DNA coulombic energy
+variable            nbp         equal   c_edna[5] # Number of base pairs
+variable            E_DNA       equal   v_ebp+v_ecstk+v_eexcl+v_dna_ecoul
+
+variable            E_coul      equal   ecoul
+variable            E_bond      equal   emol
+variable            E_chain     equal   f_1[1]
+variable            E_excl      equal   epair
+variable            E_chi       equal   f_1[3]
+variable            E_rama      equal   f_1[4]
+variable            E_dssp      equal   f_1[6]
+variable            E_pap       equal   f_1[7]
+variable            E_water     equal   f_1[8]
+variable            E_burial    equal   f_1[9]
+variable            E_helix     equal   f_1[10]
+variable            E_fmem      equal   f_1[12]
+variable            E_P         equal   v_E_bond+v_E_chain+v_E_excl+v_E_chi+v_E_rama+v_E_dssp+v_E_pap+v_E_water+v_E_burial+v_E_helix+v_E_fmem
+variable            E_K         equal   ke
+variable            E_total     equal   v_E_P+v_E_K
+variable            E_PD        equal   v_E_coul-v_dna_ecoul
+variable            Step        equal   step
+
+variable            bond_1      equal   c_edna_bonded[1]      # Protein bond energy
+variable            bond_2      equal   c_edna_bonded[2]      # DNA bond energy
+variable            EANGLE      equal   eangle                # DNA angle (stacking + traditional angle) energy
+variable            EDIHED      equal   edihed                # DNA dihedral energy
+
+
+print               "# STEP      BE1      BE2      ANG      DIH      EBP      ECSTK      EEXCL      ECOUL" file DNAenergy_temp${T}.txt screen no
+fix                 bond_energy all print 100 "${Step} ${bond_1} ${bond_2} ${EANGLE} ${EDIHED} ${ebp} ${ecstk} ${eexcl} ${dna_ecoul}" append DNAenergy_temp${T}.txt screen no
+
+#####################################################
+# A timestep of 0.02 ps
+timestep            20.0
+thermo              1000
+dump                1 all atom 100 DUMP_FILE_temp${T}.lammpstrj
+#restart             10000 restart
+
+velocity            all create ${T} ${random} rot yes mom yes dist gaussian
+fix                 1 alpha_carbons backbone beta_atoms oxygens fix_backbone_coeff.data /home/tparsons/mainScripts/nucleosome_intact/commons/buildHistone/histoneCore.seq
+
+#   ---         keep track of colective variables        --- #
+fix                 3 all colvars protCont_rgDna.colvars output out_temp${T}
+fix_modify          3 energy yes
+
+#####################################################
+#   ---         Parallel Tempering      ---     #
+fix                 myfix   all nvt temp ${T} ${T} 1000.0
+#run                 5000000
+temper              5000000 100 ${T} myfix 3847 58382 ${tempIndex}

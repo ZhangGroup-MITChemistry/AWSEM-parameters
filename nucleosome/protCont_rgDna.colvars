@@ -1,0 +1,138 @@
+
+colvarsTrajFrequency    100  # output every 10 steps
+colvarsRestartFrequency 100
+indexFile               groups.ndx
+
+colvar {
+    name    dna
+    width   5 
+    gyration {
+        atoms {
+            indexGroup dnaSugar
+        }
+    }
+}
+
+colvar {
+    name    rog1
+    width   5
+    gyration {
+        atoms {
+            indexGroup dnaSugar1st
+        }
+    }
+}
+
+colvar {
+    name    rog2
+    width   5
+    gyration {
+        atoms {
+            indexGroup dnaSugar2nd
+        }
+    }
+}
+
+#   +++++++++++++++++++++++++++++++ #
+colvar {
+    name    protein
+    width   0.1
+    qbias {
+        atoms {
+            indexGroup alpha_carbons_noTail
+        }
+        qbias           true
+        sigma           3.0
+        nativeFile      /home/tparsons/mainScripts/histoneCore/commons/build_xtal_Histone_symmetrize_gopairs/qwolynes/rnative.dat
+    }
+}
+
+#   +++++++++++++++++++++++++++++++ #
+colvar {
+    name    ifABEF
+    width   0.1
+    qinterface {
+        group1 {
+            indexGroup alpha_carbons_chainAB
+        }
+        group2 {
+            indexGroup alpha_carbons_chainEF
+        }
+        qbias           true
+        sigma           3.0
+        nativeFile      /home/tparsons/mainScripts/histoneCore/commons/build_xtal_Histone_symmetrize_gopairs/qwolynes/rnative_ABEF.dat
+    }
+}
+
+#   +++++++++++++++++++++++++++++++ #
+colvar {
+    name    ifABCD
+    width   0.1
+    qinterface {
+        group1 {
+            indexGroup alpha_carbons_chainAB
+        }
+        group2 {
+            indexGroup alpha_carbons_chainCD
+        }
+        qbias           true
+        sigma           3.0
+        nativeFile      /home/tparsons/mainScripts/histoneCore/commons/build_xtal_Histone_symmetrize_gopairs/qwolynes/rnative_ABCD.dat
+    }
+}
+
+#   +++++++++++++++++++++++++++++++ #
+colvar {
+    name    ifEFGH
+    width   0.1
+    qinterface {
+        group1 {
+            indexGroup alpha_carbons_chainEF
+        }
+        group2 {
+            indexGroup alpha_carbons_chainGH
+        }
+        qbias           true
+        sigma           3.0
+        nativeFile      /home/tparsons/mainScripts/histoneCore/commons/build_xtal_Histone_symmetrize_gopairs/qwolynes/rnative_EFGH.dat
+    }
+}
+
+#   +++++++++++++++++++++++++++++++ #
+colvar {
+    name    dhPD
+    width   20
+    dhenergy {
+        group1 {
+            indexGroup phosphate
+        }
+        group2 {
+            indexGroup CBeta
+        }
+        group1Charge    /home/tparsons/mainScripts/nucleosome_intact/commons/groupDefinitions/group_phosphate_charge.txt
+        group2Charge    /home/tparsons/mainScripts/nucleosome_intact/commons/groupDefinitions/group_CBeta_charge.txt
+        I               0.10
+        TEMP            300
+        Epsilon         78.0
+        Cutoff          40.0
+    }
+}
+
+
+colvar {
+    name   eedist
+    width   25
+    distance {
+        group1 { atomNumbers 2923 2926 2929 2932 2935 3789 3792 3795 3798 3801}
+        group2 { atomNumbers 3349 3352 3355 3358 3361 3363 3366 3369 3372 3375}
+    }
+}
+
+
+harmonic {
+  name              h_pot
+  colvars           eedist
+  centers           200.00
+  forceConstant     15.0
+  outputEnergy      yes
+}

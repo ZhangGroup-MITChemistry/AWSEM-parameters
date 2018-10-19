@@ -1,0 +1,12 @@
+[Target]
+query
+
+[Memories]
+/home/tparsons/mainScripts/histoneCore/commons/build_xtal_Histone_symmetrize_gopairs/fraglib/chainA.gro 44 44 92 1
+/home/tparsons/mainScripts/histoneCore/commons/build_xtal_Histone_symmetrize_gopairs/fraglib/chainB.gro 160 25 78 1
+/home/tparsons/mainScripts/histoneCore/commons/build_xtal_Histone_symmetrize_gopairs/fraglib/chainC.gro 258 21 95 1
+/home/tparsons/mainScripts/histoneCore/commons/build_xtal_Histone_symmetrize_gopairs/fraglib/chainD.gro 401 36 87 1
+/home/tparsons/mainScripts/histoneCore/commons/build_xtal_Histone_symmetrize_gopairs/fraglib/chainA.gro 531 44 92 1
+/home/tparsons/mainScripts/histoneCore/commons/build_xtal_Histone_symmetrize_gopairs/fraglib/chainB.gro 647 25 78 1
+/home/tparsons/mainScripts/histoneCore/commons/build_xtal_Histone_symmetrize_gopairs/fraglib/chainC.gro 745 21 95 1
+/home/tparsons/mainScripts/histoneCore/commons/build_xtal_Histone_symmetrize_gopairs/fraglib/chainD.gro 888 36 87 1
